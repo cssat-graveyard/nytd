@@ -141,7 +141,7 @@ a.test <- sqlQuery(con, "SELECT
     ,IIF(fc.[noa] = 'Yes', 1, IIF(fc.[noa] = 'No', 0, NULL)) AS fc_noa	
 	,fc.[fcmntpay]
 	,IIF(fc.[inatstart] = 'Yes', 1, IIF(fc.[inatstart] = 'No', 0, NULL)) AS fc_inatstart -- *****
-    ,IIF(fc.[inatend] = 'Yes', 1, IIF(fc.[inatend] = 'No', 0, NULL)) AS fc_inatend
+    --,IIF(fc.[inatend] = 'Yes', 1, IIF(fc.[inatend] = 'No', 0, NULL)) AS fc_inatend
     --,IIF(fc.[entered] = 'Yes', 1, IIF(fc.[entered] = 'No', 0, NULL)) AS fc_entered
     --,IIF(fc.[exited] = 'Yes', 1, IIF(fc.[exited] = 'No', 0, NULL)) AS fc_exited -- *****
 	,IIF(fc.[iswaiting] = 'Yes', 1, IIF(fc.[iswaiting] = 'No', 0, NULL)) AS fc_iswaiting 
@@ -173,12 +173,12 @@ LEFT JOIN
 		,npd.stchid
 		,fc.datayear
 	FROM [dbCoreAdministrativeTables].[public_data].[NYTD_Outcomes_people_dim] AS npd
-		INNER JOIN [public_data].[afcars_foster_care_00_12] AS fc
+		INNER JOIN [public_data].[afcars_foster_care_00_13] AS fc
 			ON npd.recnumbr = fc.RecNumbr
 			AND npd.st = fc.St) AS fcid
 	ON npd.stchid = fcid.stchid
 	AND r_order = 1
-LEFT JOIN [public_data].[afcars_foster_care_00_12] AS fc
+LEFT JOIN [public_data].[afcars_foster_care_00_13] AS fc
 	ON npd.recnumbr = fc.recnumbr
 	AND npd.st = fc.st
 	AND fcid.datayear = fc.datayear
@@ -190,23 +190,28 @@ st <- as.data.frame(unique(a.test$st))
 st_cd <- as.data.frame(cbind(1:length(unique(a.test$st)), st))
 names(st_cd) <- c("st_cd", "st")
 
+?amelia
+
 a.test <- left_join(a.test, st_cd)
 
-id <- c("st", "stchid", "recnumbr", "dob", "dobyr", "dobmon", "weight")
+id <- c("st", "stchid", "recnumbr", "dob", "dobyr", "dobmon", "weight", "white")
 
 noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2_children", "s_fcstatsv", "s_tribesv", "s_delinqntsv", 
 	"s_specedsv", "s_ilnasv", "s_psedsuppsv", "s_careersv", "s_emplytrsv", "s_budgetsv", "s_housedsv", "s_hlthedsv", "s_famsuppsv", 
 	"s_mentorsv", "s_silsv", "s_rmbrdfasv", "s_educfinasv", "s_othrfinasv", "fc_clindis", "fc_mr", "fc_vishear", "fc_phydis", 
 	"fc_dsmiii", "fc_othermed", "fc_everadpt", "fc_placeout", "ctkfamst", "fosfamst", "fc_ivefc", "fc_iveaa", "fc_ivaafdc", "fc_ivdchsup", 
-	"fc_xixmedcd", "fc_ssiother", "fc_noa", "fc_inatend",  "fc_iswaiting", "fc_istpr", "fc_agedout", "fc_chbehprb", "nytd2_medicaid",
+	"fc_xixmedcd", "fc_ssiother", "fc_noa",  "fc_iswaiting", "fc_istpr", "fc_agedout", "fc_chbehprb", "nytd2_medicaid",
 	"nytd2_othrhlthin", "nytd2_currenroll", "nytd2_medicalin", "nytd1_currfte", "nytd1_currpte", "nytd1_emplysklls", "nytd1_socsecrty",
 	"nytd1_educaid", "nytd1_pubfinas", "nytd1_othrfinas", "nytd1_currenroll", "nytd1_cnctadult", "nytd1_homeless", "nytd1_subabuse", 
 	"nytd1_incarc", "nytd1_medicaid", "nytd1_othrhlthin", "nytd1_medicalin", "nytd2_currfte", "nytd2_currpte", "nytd2_emplysklls",
 	"nytd2_socsecrty", "nytd2_educaid", "nytd2_pubfinas")
 
+	# removed
+	# "fc_inatend"
+	
 ord_vars <- c("s_edlevlsv", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert")  
 
-test.am <- amelia(a.test, idvars = id, m = 1, p2s = 2, noms = noms_vars, ord = ord_vars)  
+test.am <- amelia(a.test, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars)  
 
 overimpute(test.am, "lifelos")
 overimpute(test.am, "nytd1_highedcert")
@@ -217,6 +222,10 @@ compare.density(test.am, "lifelos")
 compare.density(test.am, "nytd1_highedcert")
 compare.density(test.am, "s_edlevlsv")
 compare.density(test.am, "fcmntpay")
+
+head(test.am$imputations[[1]])
+
+table(test.am$imputations[[1]]$fcmntpay)
 
 head(test.am$imputations[[1]])
 
@@ -450,12 +459,12 @@ LEFT JOIN
 		,npd.stchid
 		,fc.datayear
 	FROM [dbCoreAdministrativeTables].[public_data].[NYTD_Outcomes_people_dim] AS npd
-		INNER JOIN [public_data].[afcars_foster_care_00_12] AS fc
+		INNER JOIN [public_data].[afcars_foster_care_00_13] AS fc
 			ON npd.recnumbr = fc.RecNumbr
 			AND npd.st = fc.St) AS fcid
 	ON npd.stchid = fcid.stchid
 	AND r_order = 1
-LEFT JOIN [public_data].[afcars_foster_care_00_12] AS fc
+LEFT JOIN [public_data].[afcars_foster_care_00_13] AS fc
 	ON npd.recnumbr = fc.recnumbr
 	AND npd.st = fc.st
 	AND fcid.datayear = fc.datayear
