@@ -8,13 +8,15 @@ library(maps)
 
 con <- odbcConnect("POC")
 
-a.test <- sqlQuery(con, "SELECT
+a.test <- sqlQuery(con, "
+
+SELECT 
 	npd.st
 	,npd.stchid
 	,npd.recnumbr
 	,npd.dob
-	,npd.dobyr
-	,npd.dobmon
+	--,npd.dobyr
+	--,npd.dobmon
 	,npd.sex
 	,npd.amiakn
 	,npd.asian
@@ -89,20 +91,20 @@ a.test <- sqlQuery(con, "SELECT
     ,s.[tribesv] AS s_tribesv	
     ,s.[delinqntsv] AS s_delinqntsv	
     ,s.[edlevlsv_cd] AS s_edlevlsv	
-    ,s.[specedsv] AS s_specedsv	
-    ,s.[ilnasv] AS s_ilnasv	
-    ,s.[psedsuppsv] AS s_psedsuppsv	
-    ,s.[careersv] AS s_careersv	
-    ,s.[emplytrsv] AS s_emplytrsv	
-    ,s.[budgetsv] AS s_budgetsv	
-    ,s.[housedsv] AS s_housedsv	
-    ,s.[hlthedsv] AS s_hlthedsv	
-    ,s.[famsuppsv] AS s_famsuppsv	
-    ,s.[mentorsv] AS s_mentorsv	
-    ,s.[silsv] AS s_silsv	
-    ,s.[rmbrdfasv] AS s_rmbrdfasv	
-    ,s.[educfinasv] AS s_educfinasv	
-    ,s.[othrfinasv] AS s_othrfinasv 
+    ,ISNULL(s.[specedsv], 0) AS s_specedsv	
+    ,ISNULL(s.[ilnasv], 0) AS s_ilnasv	
+    ,ISNULL(s.[psedsuppsv], 0) AS s_psedsuppsv	
+    ,ISNULL(s.[careersv], 0) AS s_careersv	
+    ,ISNULL(s.[emplytrsv], 0) AS s_emplytrsv	
+    ,ISNULL(s.[budgetsv], 0) AS s_budgetsv	
+    ,ISNULL(s.[housedsv], 0) AS s_housedsv	
+    ,ISNULL(s.[hlthedsv], 0) AS s_hlthedsv	
+    ,ISNULL(s.[famsuppsv], 0) AS s_famsuppsv	
+    ,ISNULL(s.[mentorsv], 0) AS s_mentorsv	
+    ,ISNULL(s.[silsv], 0) AS s_silsv	
+    ,ISNULL(s.[rmbrdfasv], 0) AS s_rmbrdfasv	
+    ,ISNULL(s.[educfinasv], 0) AS s_educfinasv	
+    ,ISNULL(s.[othrfinasv], 0) AS s_othrfinasv 
     ,IIF(fc.[clindis] = 'Yes', 1, IIF(fc.[clindis] = 'No', 0, IIF(fc.[clindis] = 'Not yet determined', 2, NULL))) AS fc_clindis 
     ,IIF(fc.[mr] = 'Yes', '1', IIF(fc.[mr] = 'No', '0', NULL)) AS fc_mr	
     ,IIF(fc.[vishear] = 'Yes', 1, IIF(fc.[vishear]= 'No', 0, NULL)) AS fc_vishear	
@@ -183,18 +185,21 @@ LEFT JOIN [public_data].[afcars_foster_care_00_13] AS fc
 	AND npd.st = fc.st
 	AND fcid.datayear = fc.datayear
 WHERE npd.st NOT IN ('NY', 'PR')
+	--AND npd.st = 'WA'
+	--AND s.fcstatsv IS NULL
 ORDER BY 
-	npd.stchid")
+	npd.stchid
+")
 
 st <- as.data.frame(unique(a.test$st))
 st_cd <- as.data.frame(cbind(1:length(unique(a.test$st)), st))
 names(st_cd) <- c("st_cd", "st")
 
-?amelia
+missmap(a.test)
 
 a.test <- left_join(a.test, st_cd)
 
-id <- c("st", "stchid", "recnumbr", "dob", "dobyr", "dobmon", "weight", "white")
+id <- c("st", "stchid", "recnumbr", "dob", "weight", "white")
 
 noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2_children", "s_fcstatsv", "s_tribesv", "s_delinqntsv", 
 	"s_specedsv", "s_ilnasv", "s_psedsuppsv", "s_careersv", "s_emplytrsv", "s_budgetsv", "s_housedsv", "s_hlthedsv", "s_famsuppsv", 
@@ -211,7 +216,7 @@ noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2
 	
 ord_vars <- c("s_edlevlsv", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert")  
 
-test.am <- amelia(a.test, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars)  
+test.am <- amelia(a.test, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars)
 
 overimpute(test.am, "lifelos")
 overimpute(test.am, "nytd1_highedcert")
