@@ -191,6 +191,46 @@ ORDER BY
 	npd.stchid
 ")
 
+# splitting the data
+test_rf <- a.test
+
+set.seed(1967)
+
+## 75% of the sample size
+smp_size <- floor(0.66 * nrow(test_rf))
+
+## set the seed to make your partition reproductible
+train_ind <- sample(seq_len(nrow(test_rf)), size = smp_size)
+
+train <- test_rf[train_ind, ]
+validation <- test_rf[-train_ind, ]
+
+## spitting the training settinglos
+
+train_df <- train
+
+smp_size <- floor(0.5 * nrow(train_df))
+
+train_ind <- sample(seq_len(nrow(train_df)), size = smp_size)
+
+train <- train_df[train_ind, ]
+test <- train_df[-train_ind, ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 st <- as.data.frame(unique(a.test$st))
 st_cd <- as.data.frame(cbind(1:length(unique(a.test$st)), st))
 names(st_cd) <- c("st_cd", "st")
@@ -199,7 +239,7 @@ missmap(a.test)
 
 a.test <- left_join(a.test, st_cd)
 
-id <- c("st", "stchid", "recnumbr", "dob", "weight", "white")
+id <- c("st", "stchid", "recnumbr", "dob", "weight")
 
 noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2_children", "s_fcstatsv", "s_tribesv", "s_delinqntsv", 
 	"s_specedsv", "s_ilnasv", "s_psedsuppsv", "s_careersv", "s_emplytrsv", "s_budgetsv", "s_housedsv", "s_hlthedsv", "s_famsuppsv", 
@@ -214,15 +254,22 @@ noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2
 	# removed
 	# "fc_inatend"
 	
+	# what do?
+	# nytd2_othrfinas
+	# nytd2_cnctadult
+	
 ord_vars <- c("s_edlevlsv", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert")  
 
-test.am <- amelia(a.test, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars)
+test.am <- amelia(a.test, idvars = id, m = 1, p2s = 2, noms = noms_vars, ord = ord_vars)
 
+par(mfrow = c(2,3))
 overimpute(test.am, "lifelos")
 overimpute(test.am, "nytd1_highedcert")
 overimpute(test.am, "s_edlevlsv")
 overimpute(test.am, "nytd2_highedcert")
 overimpute(test.am, "fcmntpay")
+
+par(mfrow = c(2,2))
 compare.density(test.am, "lifelos")
 compare.density(test.am, "nytd1_highedcert")
 compare.density(test.am, "s_edlevlsv")
@@ -230,7 +277,7 @@ compare.density(test.am, "fcmntpay")
 
 head(test.am$imputations[[1]])
 
-table(test.am$imputations[[1]]$fcmntpay)
+min(test.am$imputations[[4]]$lifelos)
 
 head(test.am$imputations[[1]])
 
@@ -238,27 +285,27 @@ is(a.test$fcmntpay)
 
 filter(a.test, is.na(asian))
 
-yar_mod <- glm(nytd2_homeless ~ nytd2_children + as.factor(nytd2_pubhousas) + blkafram + white + asian + hawaiipi + amiakn + s_delinqntsv + fc_everadpt + fc_chbehprb, data = a.test, family = binomial, weights = weight)
+yar_mod <- glm(nytd2_homeless ~ nytd2_children + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = a.test, family = binomial, weights = weight)
 
 summary(yar_mod)
 
-yar_mod_imp1 <- glm(nytd2_homeless ~ nytd2_children + as.factor(nytd2_pubfinas) + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[1]], family = binomial, weights = weight)
+yar_mod_imp1 <- glm(nytd2_homeless ~ nytd2_children + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[1]], family = binomial, weights = weight)
 
 summary(yar_mod_imp1)
 
-yar_mod_imp2 <- glm(nytd2_homeless ~ nytd2_children + as.factor(nytd2_pubhousas) + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[2]], family = binomial, weights = weight)
+yar_mod_imp2 <- glm(nytd2_homeless ~ nytd2_children + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[2]], family = binomial, weights = weight)
 
 summary(yar_mod_imp2)
 
-yar_mod_imp3 <- glm(nytd2_homeless ~ nytd2_children + as.factor(nytd2_pubhousas) + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[3]], family = binomial, weights = weight)
+yar_mod_imp3 <- glm(nytd2_homeless ~ nytd2_children + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[3]], family = binomial, weights = weight)
 
 summary(yar_mod_imp3)
 
-yar_mod_imp4 <- glm(nytd2_homeless ~ nytd2_children + as.factor(nytd2_pubhousas) + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[4]], family = binomial, weights = weight)
+yar_mod_imp4 <- glm(nytd2_homeless ~ nytd2_children + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[4]], family = binomial, weights = weight)
 
 summary(yar_mod_imp4)
 
-yar_mod_imp5 <- glm(nytd2_homeless ~ nytd2_children + as.factor(nytd2_pubhousas) + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[5]], family = binomial, weights = weight)
+yar_mod_imp5 <- glm(nytd2_homeless ~ nytd2_children + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[5]], family = binomial, weights = weight)
 
 summary(yar_mod_imp5) 
 
