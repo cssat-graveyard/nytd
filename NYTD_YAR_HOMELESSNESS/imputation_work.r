@@ -76,7 +76,7 @@ SELECT
 	,s.[fcstatsv] AS s_fcstatsv	
     ,s.[tribesv] AS s_tribesv	
     ,s.[delinqntsv] AS s_delinqntsv	
-    ,s.[edlevlsv_cd] AS s_edlevlsv	
+    ,s.[edlevlsv] AS s_edlevlsv	
     ,ISNULL(s.[specedsv], 0) AS s_specedsv	
     ,ISNULL(s.[ilnasv], 0) AS s_ilnasv	
     ,ISNULL(s.[psedsuppsv], 0) AS s_psedsuppsv	
@@ -141,14 +141,14 @@ SELECT
     ,fc.[ageatend] AS fc_ageatlatrem 
     ,fc.[ageatend] AS fc_ageatend
     ,IIF(fc.[agedout] = 'Yes', 1, IIF(fc.[agedout] = 'No', 0, fc.[agedout])) AS fc_agedout  
-FROM [dbCoreAdministrativeTables].[public_data].[NYTD_Outcomes_people_dim] AS npd
-JOIN [public_data].[NYTD_Outcomes_Waves_1_2] AS nytd1
+FROM [CA_ODS].[ndacan].[NYTD_Outcomes_people_dim] AS npd
+JOIN [CA_ODS].[ndacan].[NYTD_Outcomes_Waves_1_2] AS nytd1
 	ON npd.stchid = nytd1.stchid
 	AND nytd1.cd_wave = 1
-JOIN [public_data].[NYTD_Outcomes_Waves_1_2] AS nytd2
+JOIN [CA_ODS].[ndacan].[NYTD_Outcomes_Waves_1_2] AS nytd2
 	ON npd.stchid = nytd2.stchid
 	AND nytd2.cd_wave = 2
-LEFT JOIN [public_data].[NYTD_Services_2011_2012_truncated] AS s 
+LEFT JOIN [CA_ODS].[ndacan].[NYTD_Services_2011_2012_2013_truncated] AS s 
 	ON npd.stchid = s.stchid
 	AND npd.sex = s.sex
 	AND npd.dobyr = YEAR(CONVERT(date, s.dob))
@@ -160,13 +160,13 @@ LEFT JOIN
 		,fc.st
 		,npd.stchid
 		,fc.datayear
-	FROM [dbCoreAdministrativeTables].[public_data].[NYTD_Outcomes_people_dim] AS npd
-		INNER JOIN [public_data].[afcars_foster_care_00_13] AS fc
+	FROM [CA_ODS].[ndacan].[NYTD_Outcomes_people_dim] AS npd
+		INNER JOIN [CA_ODS].[ndacan].[afcars_foster_care_00_13] AS fc
 			ON npd.recnumbr = fc.RecNumbr
 			AND npd.st = fc.St) AS fcid
 	ON npd.stchid = fcid.stchid
 	AND r_order = 1
-LEFT JOIN [public_data].[afcars_foster_care_00_13] AS fc
+LEFT JOIN [CA_ODS].[ndacan].[afcars_foster_care_00_13] AS fc
 	ON npd.recnumbr = fc.recnumbr
 	AND npd.st = fc.st
 	AND fcid.datayear = fc.datayear
@@ -176,12 +176,6 @@ WHERE npd.st NOT IN ('NY', 'PR')
 ORDER BY 
 	npd.stchid
 ")
-
-test_dat <- dplyr::select(dat, amiakn, s_tribesv)
-
-test_dat <- na.omit(test_dat)
-
-cor(test_dat$amiakn, test_dat$s_tribesv)
 
 missmap(dat)
 
