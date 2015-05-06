@@ -3,20 +3,21 @@
 
 library(RODBC)
 library(Amelia)
-library(dplyr)
 library(maps)
+library(corrplot)
+library(caret)
+library(dplyr)
 
 con <- odbcConnect("POC")
 
-a.test <- sqlQuery(con, "
-
+dat <- sqlQuery(con, "
 SELECT 
 	npd.st
 	,npd.stchid
 	,npd.recnumbr
 	,npd.dob
-	--,npd.dobyr
-	--,npd.dobmon
+	,npd.dobyr
+	,npd.dobmon
 	,npd.sex
 	,npd.amiakn
 	,npd.asian
@@ -25,30 +26,15 @@ SELECT
 	,npd.white
 	,npd.racedcln
 	,npd.hisorgin
---	,IIF(npd.amiakn = 1 AND (npd.asian = 0 AND npd.blkafram = 0 AND npd.hawaiipi = 0 AND npd.white = 0), 1, 
---		IIF(npd.asian = 1 AND (npd.amiakn = 0 AND npd.blkafram = 0 AND npd.hawaiipi = 0 AND npd.white = 0), 2,
---			IIF(npd.blkafram = 1 AND (npd.amiakn = 0 AND npd.asian = 0 AND npd.hawaiipi = 0 AND npd.white = 0), 3,
---				IIF(npd.hawaiipi = 1 AND (npd.amiakn = 0 AND npd.asian = 0 AND npd.blkafram = 0 AND npd.white = 0), 4, 
---					IIF(npd.white = 1 AND (npd.amiakn = 0 AND npd.asian = 0 AND npd.blkafram = 0 AND npd.hawaiipi = 0), 5,
---						IIF(npd.amiakn = 1 AND (npd.asian = 1 OR npd.blkafram = 1 OR npd.hawaiipi = 1 OR npd.white = 1), 6, 
---							IIF(npd.asian = 1 AND (npd.amiakn = 1 OR npd.blkafram = 1 OR npd.hawaiipi = 1 OR npd.white = 1), 6,
---								IIF(npd.blkafram = 1 AND (npd.amiakn = 1 OR npd.asian = 1 OR npd.hawaiipi = 1 OR npd.white = 1), 6,
---									IIF(npd.hawaiipi = 1 AND (npd.amiakn = 1 OR npd.asian = 1 OR npd.blkafram = 1 OR npd.white = 1), 6, 
---										IIF(npd.white = 1 AND (npd.amiakn = 1 OR npd.asian = 1 OR npd.blkafram = 1 OR npd.hawaiipi = 1), 6, 0)))))))))) AS race
---		,IIF(npd.amiakn = 1, 1, 
---		    IIF(npd.blkafram = 1, 3,
---				IIF(npd.hawaiipi = 1, 4, 
---					IIF(npd.asian = 1, 2,
---						IIF(npd.white = 1, 5, 0))))) AS race
---		, IIF(npd.amiakn + npd.blkafram + npd.hawaiipi + npd.asian + npd.white > 1, 1, 0) AS multirace_fl
+	,IIF(npd.amiakn + npd.asian + IIF(npd.blkafram = 3, 0, npd.blkafram) + npd.hawaiipi + npd.white > 1, 1, 0) AS multirace
     ,IIF(nytd1.[currfte] IN (2, 77), NULL, nytd1.[currfte]) AS nytd1_currfte
     ,IIF(nytd1.[currpte] IN (2, 77), NULL, nytd1.[currpte]) AS nytd1_currpte
     ,IIF(nytd1.[emplysklls] IN (2, 77), NULL, nytd1.[emplysklls]) AS nytd1_emplysklls
     ,IIF(nytd1.[socsecrty] IN (2, 77), NULL, nytd1.[socsecrty]) AS nytd1_socsecrty
     ,IIF(nytd1.[educaid] IN (2, 77), NULL, nytd1.[educaid]) AS nytd1_educaid
     ,IIF(nytd1.[pubfinas] IN (2, 77), NULL, nytd1.[pubfinas]) AS nytd1_pubfinas
-    --,IIF(nytd1.[pubfoodas] IN (2, 77), NULL, nytd1.[pubfoodas]) AS nytd1_pubfoodas
-    --,IIF(nytd1.[pubhousas] IN (2, 77), NULL, nytd1.[pubhousas]) AS nytd1_pubhousas
+    ,IIF(nytd1.[pubfoodas] IN (2, 77), NULL, nytd1.[pubfoodas]) AS nytd1_pubfoodas
+    ,IIF(nytd1.[pubhousas] IN (2, 77), NULL, nytd1.[pubhousas]) AS nytd1_pubhousas
     ,IIF(nytd1.[othrfinas] IN (2, 77), NULL, nytd1.[othrfinas]) AS nytd1_othrfinas
     ,IIF(nytd1.[highedcert] IN (8, 77, 78), NULL, nytd1.[highedcert]) AS nytd1_highedcert
     ,IIF(nytd1.[currenroll] IN (2, 77), NULL, nytd1.[currenroll]) AS nytd1_currenroll
@@ -56,22 +42,22 @@ SELECT
     ,IIF(nytd1.[homeless] IN (2, 77), NULL, nytd1.[homeless]) AS nytd1_homeless
     ,IIF(nytd1.[subabuse] IN (2, 77), NULL, nytd1.[subabuse]) AS nytd1_subabuse
     ,IIF(nytd1.[incarc] IN (2, 77), NULL, nytd1.[incarc]) AS nytd1_incarc
-    --,IIF(nytd1.[children] IN (2, 77), NULL, nytd1.[children]) AS nytd1_children
-    --,IIF(nytd1.[marriage] IN (2, 77), NULL, nytd1.[marriage]) AS nytd1_marriage
+    ,IIF(nytd1.[children] IN (2, 77), NULL, nytd1.[children]) AS nytd1_children
+    ,IIF(nytd1.[marriage] IN (2, 77), NULL, nytd1.[marriage]) AS nytd1_marriage
     ,IIF(nytd1.[medicaid] IN (2, 77), NULL, nytd1.[medicaid]) AS nytd1_medicaid
     ,IIF(nytd1.[othrhlthin] IN (2, 77), NULL, nytd1.[othrhlthin]) AS nytd1_othrhlthin
     ,IIF(nytd1.[medicalin] IN (2, 77), NULL, nytd1.[medicalin]) AS nytd1_medicalin
-    --,IIF(nytd1.[mentlhlthin] IN (2, 77), NULL, nytd1.[mentlhlthin]) AS nytd1_mentlhlthin
-    --,IIF(nytd1.[prescripin] IN (2, 77), NULL, nytd1.[prescripin]) AS nytd1_prescripin
-    --,IIF(nytd2.[outcmfcs] IN (77), NULL, nytd2.[outcmfcs]) AS nytd2_outcmfcs -------
+    ,IIF(nytd1.[mentlhlthin] IN (2, 77), NULL, nytd1.[mentlhlthin]) AS nytd1_mentlhlthin
+    ,IIF(nytd1.[prescripin] IN (2, 77), NULL, nytd1.[prescripin]) AS nytd1_prescripin
+    ,IIF(nytd2.[outcmfcs] IN (77), NULL, nytd2.[outcmfcs]) AS nytd2_outcmfcs -------
     ,IIF(nytd2.[currfte] IN (2, 77), NULL, nytd2.[currfte]) AS nytd2_currfte
     ,IIF(nytd2.[currpte] IN (2, 77), NULL, nytd2.[currpte]) AS nytd2_currpte
     ,IIF(nytd2.[emplysklls] IN (2, 77), NULL, nytd2.[emplysklls]) AS nytd2_emplysklls
     ,IIF(nytd2.[socsecrty] IN (2, 77), NULL, nytd2.[socsecrty]) AS nytd2_socsecrty
     ,IIF(nytd2.[educaid] IN (2, 77), NULL, nytd2.[educaid]) AS nytd2_educaid
     ,IIF(nytd2.[pubfinas] IN(2, 77), NULL, nytd2.[pubfinas]) AS nytd2_pubfinas
-    --,IIF(nytd2.[pubfoodas] IN(2, 77), NULL, nytd2.[pubfoodas]) AS nytd2_pubfoodas
-    --,IIF(nytd2.[pubhousas] IN(2, 77), NULL, nytd2.[pubhousas]) AS nytd2_pubhousas
+    ,IIF(nytd2.[pubfoodas] IN(2, 77), NULL, nytd2.[pubfoodas]) AS nytd2_pubfoodas
+    ,IIF(nytd2.[pubhousas] IN(2, 77), NULL, nytd2.[pubhousas]) AS nytd2_pubhousas
     ,IIF(nytd2.[othrfinas] IN(2, 77), NULL, nytd2.[othrfinas]) AS nytd2_othrfinas
     ,IIF(nytd2.[highedcert] IN (8, 77, 78), NULL, nytd2.[highedcert]) AS nytd2_highedcert
     ,IIF(nytd2.[currenroll] IN (2, 77), NULL, nytd2.[currenroll]) AS nytd2_currenroll
@@ -80,13 +66,13 @@ SELECT
     ,IIF(nytd2.[subabuse] IN (2, 77), NULL, nytd2.[subabuse]) AS nytd2_subabuse
     ,IIF(nytd2.[incarc] IN (2, 77), NULL, nytd2.[incarc]) AS nytd2_incarc
     ,IIF(nytd2.[children] IN (2, 77), NULL, nytd2.[children]) AS nytd2_children
-    --,IIF(nytd2.[marriage] IN (2, 77), NULL, nytd2.[marriage]) AS nytd2_marriage
+    ,IIF(nytd2.[marriage] IN (2, 77), NULL, nytd2.[marriage]) AS nytd2_marriage
 	,nytd2.[weight]
     ,IIF(nytd2.[medicaid] IN (2, 77), NULL, nytd2.[medicaid]) AS nytd2_medicaid
     ,IIF(nytd2.[othrhlthin] IN (2, 77), NULL, nytd2.[othrhlthin]) AS nytd2_othrhlthin
     ,IIF(nytd2.[medicalin] IN (2, 77), NULL, nytd2.[medicalin]) AS nytd2_medicalin
-    --,IIF(nytd2.[mentlhlthin] IN (2, 77), NULL, nytd2.[mentlhlthin]) AS nytd2_mentlhlthin
-    --,IIF(nytd2.[prescripin] IN (2, 77), NULL, nytd2.[prescripin]) AS nytd2_prescripin
+    ,IIF(nytd2.[mentlhlthin] IN (2, 77), NULL, nytd2.[mentlhlthin]) AS nytd2_mentlhlthin
+    ,IIF(nytd2.[prescripin] IN (2, 77), NULL, nytd2.[prescripin]) AS nytd2_prescripin
 	,s.[fcstatsv] AS s_fcstatsv	
     ,s.[tribesv] AS s_tribesv	
     ,s.[delinqntsv] AS s_delinqntsv	
@@ -112,10 +98,10 @@ SELECT
     ,IIF(fc.[dsmiii] = 'Yes', 1, IIF(fc.[dsmiii] = 'No', 0, NULL)) AS fc_dsmiii	
     ,IIF(fc.[othermed] = 'Yes', 1, IIF(fc.[othermed] = 'No', 0, NULL)) AS fc_othermed
     ,IIF(fc.[everadpt] IN ('Yes, child has been legally adopted', 'Yes'), 1, IIF(fc.[everadpt] IN ('No, has never been legally adopted', 'No'), 0, NULL)) AS fc_everadpt
-    ,fc.[ageadopt] -- *****
-    ,fc.[totalrem] -- *****
-    ,fc.[numplep] -- *****
-    --,fc.[manrem] -- *****
+    ,fc.[ageadopt] 
+    ,fc.[totalrem] 
+    ,fc.[numplep]
+    ,fc.[manrem] 
 	,IIF(fc.[phyabuse] = 'Yes', 1, IIF(fc.[phyabuse] = 'No', 0, NULL)) AS fc_phyabuse
     ,IIF(fc.[sexabuse] = 'Yes', 1, IIF(fc.[sexabuse] = 'No', 0, NULL)) AS fc_sexabuse
     ,IIF(fc.[neglect] = 'Yes', 1, IIF(fc.[neglect] = 'No', 0, NULL)) AS fc_neglect
@@ -142,18 +128,18 @@ SELECT
     ,IIF(fc.[ssiother] = 'Yes', 1, IIF(fc.[ssiother] = 'No', 0, NULL)) AS fc_ssiother
     ,IIF(fc.[noa] = 'Yes', 1, IIF(fc.[noa] = 'No', 0, NULL)) AS fc_noa	
 	,fc.[fcmntpay]
-	,IIF(fc.[inatstart] = 'Yes', 1, IIF(fc.[inatstart] = 'No', 0, NULL)) AS fc_inatstart -- *****
-    --,IIF(fc.[inatend] = 'Yes', 1, IIF(fc.[inatend] = 'No', 0, NULL)) AS fc_inatend
-    --,IIF(fc.[entered] = 'Yes', 1, IIF(fc.[entered] = 'No', 0, NULL)) AS fc_entered
-    --,IIF(fc.[exited] = 'Yes', 1, IIF(fc.[exited] = 'No', 0, NULL)) AS fc_exited -- *****
+	,IIF(fc.[inatstart] = 'Yes', 1, IIF(fc.[inatstart] = 'No', 0, NULL)) AS fc_inatstart 
+    ,IIF(fc.[inatend] = 'Yes', 1, IIF(fc.[inatend] = 'No', 0, NULL)) AS fc_inatend
+    ,IIF(fc.[entered] = 'Yes', 1, IIF(fc.[entered] = 'No', 0, NULL)) AS fc_entered
+    ,IIF(fc.[exited] = 'Yes', 1, IIF(fc.[exited] = 'No', 0, NULL)) AS fc_exited 
 	,IIF(fc.[iswaiting] = 'Yes', 1, IIF(fc.[iswaiting] = 'No', 0, NULL)) AS fc_iswaiting 
     ,IIF(fc.[istpr] = 'Yes', 1, IIF(fc.[istpr] = 'No', 0, NULL)) AS fc_istpr
-    --,fc.[latremlos]
+    ,fc.[latremlos]
     ,fc.[settinglos]
 	,fc.[lifelos]
-	--,fc.[ageatend] AS fc_ageatstart -- *****
-    --,fc.[ageatend] AS fc_ageatlatrem -- *****
-    ,fc.[ageatend] AS fc_ageatend -- *****
+	,fc.[ageatend] AS fc_ageatstart 
+    ,fc.[ageatend] AS fc_ageatlatrem 
+    ,fc.[ageatend] AS fc_ageatend
     ,IIF(fc.[agedout] = 'Yes', 1, IIF(fc.[agedout] = 'No', 0, fc.[agedout])) AS fc_agedout  
 FROM [dbCoreAdministrativeTables].[public_data].[NYTD_Outcomes_people_dim] AS npd
 JOIN [public_data].[NYTD_Outcomes_Waves_1_2] AS nytd1
@@ -191,10 +177,57 @@ ORDER BY
 	npd.stchid
 ")
 
-# splitting the data
-test_rf <- a.test
+test_dat <- dplyr::select(dat, amiakn, s_tribesv)
 
-set.seed(1967)
+test_dat <- na.omit(test_dat)
+
+cor(test_dat$amiakn, test_dat$s_tribesv)
+
+missmap(dat)
+
+head(dat)
+
+# removing non numeric data and NA to checking correlations
+
+cor_dat <- na.omit(dat[! names(dat) %in% c("st", "stchid", "recnumbr", "dob", "dobyr", "dobmon", "sex", "weight", "ageadopt", "ctkfamst", "fosfamst", "fips", "manrem")])
+
+cor_dat <- na.omit(cor_dat[! names(cor_dat) %in% c("fc_ageatend", "nytd1_marriage", "nytd2_marriage", "fc_iswaiting", "nytd2_prescripin",
+ 			"nytd1_pubfoodas", "nytd2_prescripin", "nytd2_medicalin", "latremlos", "nytd1_prescripin", "nytd1_medicalin", "nytd1_pubhousas",
+			"nytd2_pubhousas", "fc_ageatstart", "fc_exited", "fc_entered", "nytd2_pubfoodas", "nytd2_outcmfcs", "s_tribesv")])
+
+
+# cor_dat <- dplyr::select(dat, -st, -stchid, -recnumbr, -dob, -sex, -ageadopt, -manrem, -ctkfamst, -fosfamst, -weight)
+
+# cor_dat <- as.data.frame(sapply(cor_dat, as.numeric))
+
+# checking for collinearity 
+
+head(cor_dat)
+
+cor_test <- cor(cor_dat)
+cor_col <- findCorrelation(cor_test, cutoff = .70)
+
+noquote(c(paste0(cor_col, ",")))
+
+head(cor_dat[c(5, 8)],100)
+
+table(cor_dat[[1]], cor_dat[[5]])
+
+setwd("S:/Data Portal/erik/NYTD_YAR_HOMELESSNESS")
+png(file = "correlation_plot.png", width = 480*5, height = 480*5)
+corrplot(cor_test, order = "hclust")
+dev.off()
+
+# columns to remove based on collinearity 
+
+dat <- dat[! names(dat) %in% c("fc_ageatend", "nytd1_marriage", "nytd2_marriage", "fc_iswaiting", "nytd2_prescripin",
+ 			"nytd1_pubfoodas", "nytd2_prescripin", "nytd2_medicalin", "latremlos", "nytd1_prescripin", "nytd1_medicalin", "nytd1_pubhousas",
+			"nytd2_pubhousas", "fc_ageatstart", "fc_exited", "fc_entered", "nytd2_pubfoodas", "nytd2_outcmfcs", "dobyr", "dobmon", "manrem", "s_tribesv")]
+
+# splitting the data
+test_rf <- dat
+
+set.seed(1984)
 
 ## 75% of the sample size
 smp_size <- floor(0.66 * nrow(test_rf))
@@ -204,6 +237,8 @@ train_ind <- sample(seq_len(nrow(test_rf)), size = smp_size)
 
 train <- test_rf[train_ind, ]
 validation <- test_rf[-train_ind, ]
+
+dim(validation)
 
 ## spitting the training settinglos
 
@@ -215,6 +250,23 @@ train_ind <- sample(seq_len(nrow(train_df)), size = smp_size)
 
 train <- train_df[train_ind, ]
 test <- train_df[-train_ind, ]
+dim(train)
+dim(test)
+
+library(data.table)
+
+# read in your data, wrap in data.table(..., key="id") 
+A <- data.table(read.table("vecA.csv",sep=",",header=T), key="id")
+B <- data.table(read.table("vecB.csv",sep=",",header=T), key="id")
+
+A <- data.table(noms_vars)
+B <- data.table(names(dat))
+
+setkey(A)
+setkey(B)
+\
+# Then this is all you need
+A[!B]
 
 
 
@@ -222,45 +274,96 @@ test <- train_df[-train_ind, ]
 
 
 
+# # splitting the data
+# test_rf <- dat
 
+# set.seed(1983)
 
+# ## 75% of the sample size
+# smp_size <- floor(0.66 * nrow(test_rf))
 
+# ## set the seed to make your partition reproductible
+# train_ind <- sample(seq_len(nrow(test_rf)), size = smp_size)
 
+# train <- test_rf[train_ind, ]
+# validation <- test_rf[-train_ind, ]
 
+# ## spitting the training settinglos
 
+# train_df <- train
 
+# smp_size <- floor(0.5 * nrow(train_df))
 
+# train_ind <- sample(seq_len(nrow(train_df)), size = smp_size)
 
-st <- as.data.frame(unique(a.test$st))
-st_cd <- as.data.frame(cbind(1:length(unique(a.test$st)), st))
-names(st_cd) <- c("st_cd", "st")
+# train <- train_df[train_ind, ]
+# test <- train_df[-train_ind, ]
 
-missmap(a.test)
-
-a.test <- left_join(a.test, st_cd)
+# setting variables
 
 id <- c("st", "stchid", "recnumbr", "dob", "weight")
 
-noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2_children", "s_fcstatsv", "s_tribesv", "s_delinqntsv", 
+noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2_children", "s_fcstatsv", "s_delinqntsv", 
 	"s_specedsv", "s_ilnasv", "s_psedsuppsv", "s_careersv", "s_emplytrsv", "s_budgetsv", "s_housedsv", "s_hlthedsv", "s_famsuppsv", 
 	"s_mentorsv", "s_silsv", "s_rmbrdfasv", "s_educfinasv", "s_othrfinasv", "fc_clindis", "fc_mr", "fc_vishear", "fc_phydis", 
 	"fc_dsmiii", "fc_othermed", "fc_everadpt", "fc_placeout", "ctkfamst", "fosfamst", "fc_ivefc", "fc_iveaa", "fc_ivaafdc", "fc_ivdchsup", 
-	"fc_xixmedcd", "fc_ssiother", "fc_noa",  "fc_iswaiting", "fc_istpr", "fc_agedout", "fc_chbehprb", "nytd2_medicaid",
-	"nytd2_othrhlthin", "nytd2_currenroll", "nytd2_medicalin", "nytd1_currfte", "nytd1_currpte", "nytd1_emplysklls", "nytd1_socsecrty",
-	"nytd1_educaid", "nytd1_pubfinas", "nytd1_othrfinas", "nytd1_currenroll", "nytd1_cnctadult", "nytd1_homeless", "nytd1_subabuse", 
-	"nytd1_incarc", "nytd1_medicaid", "nytd1_othrhlthin", "nytd1_medicalin", "nytd2_currfte", "nytd2_currpte", "nytd2_emplysklls",
-	"nytd2_socsecrty", "nytd2_educaid", "nytd2_pubfinas")
+	"fc_xixmedcd", "fc_ssiother", "fc_noa", "fc_istpr", "fc_agedout", "fc_chbehprb", "nytd2_medicaid", "nytd2_othrhlthin", "nytd2_currenroll",
+	"nytd1_currfte", "nytd1_currpte", "nytd1_emplysklls", "nytd1_socsecrty", "nytd1_educaid", "nytd1_pubfinas", 
+	"nytd1_othrfinas", "nytd1_currenroll", "nytd1_cnctadult", "nytd1_homeless", "nytd1_subabuse", "nytd1_incarc", "nytd1_medicaid",
+	"nytd1_othrhlthin", "nytd2_currfte", "nytd2_currpte", "nytd2_emplysklls", "nytd2_socsecrty", "nytd2_educaid",
+	"nytd2_pubfinas")
 
-	# removed
-	# "fc_inatend"
-	
-	# what do?
-	# nytd2_othrfinas
-	# nytd2_cnctadult
 	
 ord_vars <- c("s_edlevlsv", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert")  
 
-test.am <- amelia(a.test, idvars = id, m = 1, p2s = 2, noms = noms_vars, ord = ord_vars)
+# creating a dataframe for states
+
+# st <- as.data.frame(unique(a.test$st))
+# st_cd <- as.data.frame(cbind(1:length(unique(a.test$st)), st))
+# names(st_cd) <- c("st_cd", "st")
+
+# impute validation
+
+# a.test <- left_join(a.test, st_cd)
+
+validation_imp <- amelia(validation, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+
+# impute test
+
+# a.test <- left_join(a.test, st_cd) 
+
+test_imp <- amelia(test, idvars = id, m = 1, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+ 
+# impute train
+
+# a.test <- left_join(a.test, st_cd)
+
+train.imp <- amelia(train, idvars = id, m = 1, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 par(mfrow = c(2,3))
 overimpute(test.am, "lifelos")

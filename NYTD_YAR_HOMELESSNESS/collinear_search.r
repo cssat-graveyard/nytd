@@ -5,7 +5,13 @@ library(caret)
 test.a <- na.omit(a.test[! names(a.test) %in% c("st", "stchid", "recnumbr", "dob", "dobyr", "dobmon", "sex", "weight", "ageadopt", "ctkfamst", "fosfamst", "fips", "manrem")])
 
 cor_test <- cor(test.a)
-findCorrelation(cor_test, cutoff = .75)
+findCorrelation(cor_test, cutoff = -1)
+
+names(test.a)[[47]]
+dim(test.a)
+
+
+cor_test
 
 setwd("S:/Data Portal/erik/NYTD_YAR_HOMELESSNESS")
 png(file = "correlation_plot.png", width = 480*5, height = 480*5)
