@@ -1,6 +1,7 @@
 
 # set.seed(4735)
 
+library(data.table)
 library(RODBC)
 library(Amelia)
 library(maps)
@@ -49,7 +50,7 @@ SELECT
     ,IIF(nytd1.[medicalin] IN (2, 77), NULL, nytd1.[medicalin]) AS nytd1_medicalin
     ,IIF(nytd1.[mentlhlthin] IN (2, 77), NULL, nytd1.[mentlhlthin]) AS nytd1_mentlhlthin
     ,IIF(nytd1.[prescripin] IN (2, 77), NULL, nytd1.[prescripin]) AS nytd1_prescripin
-    ,IIF(nytd2.[outcmfcs] IN (77), NULL, nytd2.[outcmfcs]) AS nytd2_outcmfcs -------
+    ,IIF(nytd2.[outcmfcs] IN (77), NULL, nytd2.[outcmfcs]) AS nytd2_outcmfcs
     ,IIF(nytd2.[currfte] IN (2, 77), NULL, nytd2.[currfte]) AS nytd2_currfte
     ,IIF(nytd2.[currpte] IN (2, 77), NULL, nytd2.[currpte]) AS nytd2_currpte
     ,IIF(nytd2.[emplysklls] IN (2, 77), NULL, nytd2.[emplysklls]) AS nytd2_emplysklls
@@ -76,7 +77,7 @@ SELECT
 	,s.[fcstatsv] AS s_fcstatsv	
     ,s.[tribesv] AS s_tribesv	
     ,s.[delinqntsv] AS s_delinqntsv	
-    ,s.[edlevlsv] AS s_edlevlsv	
+    ,s.[edlevlsv_cd] AS s_edlevlsv_cd
     ,ISNULL(s.[specedsv], 0) AS s_specedsv	
     ,ISNULL(s.[ilnasv], 0) AS s_ilnasv	
     ,ISNULL(s.[psedsuppsv], 0) AS s_psedsuppsv	
@@ -148,7 +149,7 @@ JOIN [CA_ODS].[ndacan].[NYTD_Outcomes_Waves_1_2] AS nytd1
 JOIN [CA_ODS].[ndacan].[NYTD_Outcomes_Waves_1_2] AS nytd2
 	ON npd.stchid = nytd2.stchid
 	AND nytd2.cd_wave = 2
-LEFT JOIN [CA_ODS].[ndacan].[NYTD_Services_2011_2012_2013_truncated] AS s 
+LEFT JOIN [CA_ODS].[ndacan].[NYTD_Services_2011_2012_truncated] AS s 
 	ON npd.stchid = s.stchid
 	AND npd.sex = s.sex
 	AND npd.dobyr = YEAR(CONVERT(date, s.dob))
@@ -187,9 +188,10 @@ cor_dat <- na.omit(dat[! names(dat) %in% c("st", "stchid", "recnumbr", "dob", "d
 
 cor_dat <- na.omit(cor_dat[! names(cor_dat) %in% c("fc_ageatend", "nytd1_marriage", "nytd2_marriage", "fc_iswaiting", "nytd2_prescripin",
  			"nytd1_pubfoodas", "nytd2_prescripin", "nytd2_medicalin", "latremlos", "nytd1_prescripin", "nytd1_medicalin", "nytd1_pubhousas",
-			"nytd2_pubhousas", "fc_ageatstart", "fc_exited", "fc_entered", "nytd2_pubfoodas", "nytd2_outcmfcs", "s_tribesv")])
+			"nytd2_pubhousas", "fc_ageatstart", "fc_exited", "fc_entered", "nytd2_pubfoodas", "nytd2_outcmfcs", "s_tribesv", 's_edlevlsv')])
 
-
+head(cor_dat)
+			
 # cor_dat <- dplyr::select(dat, -st, -stchid, -recnumbr, -dob, -sex, -ageadopt, -manrem, -ctkfamst, -fosfamst, -weight)
 
 # cor_dat <- as.data.frame(sapply(cor_dat, as.numeric))
@@ -199,11 +201,11 @@ cor_dat <- na.omit(cor_dat[! names(cor_dat) %in% c("fc_ageatend", "nytd1_marriag
 head(cor_dat)
 
 cor_test <- cor(cor_dat)
-cor_col <- findCorrelation(cor_test, cutoff = .70)
+cor_col <- findCorrelation(cor_test, cutoff = .50)
 
 noquote(c(paste0(cor_col, ",")))
 
-head(cor_dat[c(5, 8)],100)
+head(cor_dat[c(31, 52, 63, 5)])
 
 table(cor_dat[[1]], cor_dat[[5]])
 
@@ -247,31 +249,10 @@ test <- train_df[-train_ind, ]
 dim(train)
 dim(test)
 
-library(data.table)
-
-# read in your data, wrap in data.table(..., key="id") 
-A <- data.table(read.table("vecA.csv",sep=",",header=T), key="id")
-B <- data.table(read.table("vecB.csv",sep=",",header=T), key="id")
-
-A <- data.table(noms_vars)
-B <- data.table(names(dat))
-
-setkey(A)
-setkey(B)
-\
-# Then this is all you need
-A[!B]
-
-
-
-
-
-
-
 # # splitting the data
 # test_rf <- dat
 
-# set.seed(1983)
+set.seed(1983)
 
 # ## 75% of the sample size
 # smp_size <- floor(0.66 * nrow(test_rf))
@@ -305,10 +286,15 @@ noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2
 	"nytd1_currfte", "nytd1_currpte", "nytd1_emplysklls", "nytd1_socsecrty", "nytd1_educaid", "nytd1_pubfinas", 
 	"nytd1_othrfinas", "nytd1_currenroll", "nytd1_cnctadult", "nytd1_homeless", "nytd1_subabuse", "nytd1_incarc", "nytd1_medicaid",
 	"nytd1_othrhlthin", "nytd2_currfte", "nytd2_currpte", "nytd2_emplysklls", "nytd2_socsecrty", "nytd2_educaid",
-	"nytd2_pubfinas")
+	"nytd2_pubfinas", 
+	"nytd1_children", 'totalrem', 'numplep', 'fc_phyabuse', 'fc_sexabuse', 'fc_neglect', 'fc_aaparent',
+	'fc_daparent',  'fc_aachild', 'fc_dachild', 'fc_childis', 'fc_prtsdied', 'fc_prtsjail', 'fc_nocope', 'fc_abandmnt', 'fc_relinqsh', 'fc_housing',
+	'fc_inatstart', 'fc_inatend', 'nytd1_mentlhlthin', 'nytd2_othrfinas', 'nytd2_cnctadult', 'nytd2_mentlhlthin')
 
+	# 'fc_ageatlatrem' 
+	# where should this go
 	
-ord_vars <- c("s_edlevlsv", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert")  
+ord_vars <- c("s_edlevlsv_cd", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert", 'fc_ageatlatrem' )  
 
 # creating a dataframe for states
 
@@ -320,24 +306,28 @@ ord_vars <- c("s_edlevlsv", "ageadopt", "settinglos", "lifelos", "fcmntpay", "ny
 
 # a.test <- left_join(a.test, st_cd)
 
-validation_imp <- amelia(validation, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+validation_imp <- amelia(validation, idvars = id, m = 2, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
 
 # impute test
 
 # a.test <- left_join(a.test, st_cd) 
 
-test_imp <- amelia(test, idvars = id, m = 1, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+test_imp <- amelia(test, idvars = id, m = 2, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
  
 # impute train
 
 # a.test <- left_join(a.test, st_cd)
 
-train.imp <- amelia(train, idvars = id, m = 1, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+train.imp <- amelia(train, idvars = id, m = 2, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
 
+head(validation_imp$imputations[[1]], 100)
 
+summary(test.imp)
 
-
-
+setwd("S:/Data Portal/erik/NYTD_YAR_HOMELESSNESS")
+png(file = "impute_plot.png", width = 480*5, height = 480*5)
+plot(validation_imp)
+dev.off()
 
 
 
