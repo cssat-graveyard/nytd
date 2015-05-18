@@ -180,8 +180,6 @@ ORDER BY
 
 missmap(dat)
 
-head(dat)
-
 # removing non numeric data and NA to checking correlations
 
 cor_dat <- na.omit(dat[! names(dat) %in% c("st", "stchid", "recnumbr", "dob", "dobyr", "dobmon", "sex", "weight", "ageadopt", "ctkfamst", "fosfamst", "fips", "manrem")])
@@ -189,16 +187,12 @@ cor_dat <- na.omit(dat[! names(dat) %in% c("st", "stchid", "recnumbr", "dob", "d
 cor_dat <- na.omit(cor_dat[! names(cor_dat) %in% c("fc_ageatend", "nytd1_marriage", "nytd2_marriage", "fc_iswaiting", "nytd2_prescripin",
  			"nytd1_pubfoodas", "nytd2_prescripin", "nytd2_medicalin", "latremlos", "nytd1_prescripin", "nytd1_medicalin", "nytd1_pubhousas",
 			"nytd2_pubhousas", "fc_ageatstart", "fc_exited", "fc_entered", "nytd2_pubfoodas", "nytd2_outcmfcs", "s_tribesv", 's_edlevlsv')])
-
-head(cor_dat)
 			
 # cor_dat <- dplyr::select(dat, -st, -stchid, -recnumbr, -dob, -sex, -ageadopt, -manrem, -ctkfamst, -fosfamst, -weight)
 
 # cor_dat <- as.data.frame(sapply(cor_dat, as.numeric))
 
 # checking for collinearity 
-
-head(cor_dat)
 
 cor_test <- cor(cor_dat)
 cor_col <- findCorrelation(cor_test, cutoff = .50)
@@ -223,7 +217,9 @@ dat <- dat[! names(dat) %in% c("fc_ageatend", "nytd1_marriage", "nytd2_marriage"
 # splitting the data
 test_rf <- dat
 
-set.seed(1984)
+# set.seed(11261983)
+
+set.seed(100)
 
 ## 75% of the sample size
 smp_size <- floor(0.66 * nrow(test_rf))
@@ -252,7 +248,9 @@ dim(test)
 # # splitting the data
 # test_rf <- dat
 
-set.seed(1983)
+# set.seed(1900)
+# set.seed(11261983)
+
 
 # ## 75% of the sample size
 # smp_size <- floor(0.66 * nrow(test_rf))
@@ -282,19 +280,20 @@ noms_vars <- c("sex", "nytd2_homeless", "nytd2_subabuse", "nytd2_incarc", "nytd2
 	"s_specedsv", "s_ilnasv", "s_psedsuppsv", "s_careersv", "s_emplytrsv", "s_budgetsv", "s_housedsv", "s_hlthedsv", "s_famsuppsv", 
 	"s_mentorsv", "s_silsv", "s_rmbrdfasv", "s_educfinasv", "s_othrfinasv", "fc_clindis", "fc_mr", "fc_vishear", "fc_phydis", 
 	"fc_dsmiii", "fc_othermed", "fc_everadpt", "fc_placeout", "ctkfamst", "fosfamst", "fc_ivefc", "fc_iveaa", "fc_ivaafdc", "fc_ivdchsup", 
-	"fc_xixmedcd", "fc_ssiother", "fc_noa", "fc_istpr", "fc_agedout", "fc_chbehprb", "nytd2_medicaid", "nytd2_othrhlthin", "nytd2_currenroll",
+	"fc_xixmedcd", "fc_ssiother", "fc_noa", "fc_istpr", "fc_chbehprb", "nytd2_medicaid", "nytd2_othrhlthin", "nytd2_currenroll",
 	"nytd1_currfte", "nytd1_currpte", "nytd1_emplysklls", "nytd1_socsecrty", "nytd1_educaid", "nytd1_pubfinas", 
 	"nytd1_othrfinas", "nytd1_currenroll", "nytd1_cnctadult", "nytd1_homeless", "nytd1_subabuse", "nytd1_incarc", "nytd1_medicaid",
 	"nytd1_othrhlthin", "nytd2_currfte", "nytd2_currpte", "nytd2_emplysklls", "nytd2_socsecrty", "nytd2_educaid",
 	"nytd2_pubfinas", 
-	"nytd1_children", 'totalrem', 'numplep', 'fc_phyabuse', 'fc_sexabuse', 'fc_neglect', 'fc_aaparent',
+	"nytd1_children", 'totalrem', 'fc_phyabuse', 'fc_sexabuse', 'fc_neglect', 'fc_aaparent',
 	'fc_daparent',  'fc_aachild', 'fc_dachild', 'fc_childis', 'fc_prtsdied', 'fc_prtsjail', 'fc_nocope', 'fc_abandmnt', 'fc_relinqsh', 'fc_housing',
 	'fc_inatstart', 'fc_inatend', 'nytd1_mentlhlthin', 'nytd2_othrfinas', 'nytd2_cnctadult', 'nytd2_mentlhlthin')
 
 	# 'fc_ageatlatrem' 
 	# where should this go
 	
-ord_vars <- c("s_edlevlsv_cd", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert", 'fc_ageatlatrem' )  
+ord_vars <- c("s_edlevlsv_cd", "ageadopt", "settinglos", "lifelos", "fcmntpay", "nytd1_highedcert", "nytd2_highedcert", 'fc_ageatlatrem', 
+	'numplep', "fc_agedout") 
 
 # creating a dataframe for states
 
@@ -306,30 +305,60 @@ ord_vars <- c("s_edlevlsv_cd", "ageadopt", "settinglos", "lifelos", "fcmntpay", 
 
 # a.test <- left_join(a.test, st_cd)
 
-validation_imp <- amelia(validation, idvars = id, m = 2, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+validation_imp <- amelia(validation, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+
+save(validation_imp, file = "validation_imp.RData")
 
 # impute test
 
 # a.test <- left_join(a.test, st_cd) 
 
-test_imp <- amelia(test, idvars = id, m = 2, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
- 
+test_imp <- amelia(test, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+save(test_imp, file = "test_imp.RData")
+
 # impute train
 
 # a.test <- left_join(a.test, st_cd)
 
-train.imp <- amelia(train, idvars = id, m = 2, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+train_imp <- amelia(train, idvars = id, m = 10, p2s = 2, noms = noms_vars, ord = ord_vars, empri = 1)
+save(train_imp, file = "train.imp.RData")
 
-head(validation_imp$imputations[[1]], 100)
+
+as.data.frame(na.omit(train) %>% group_by(st) %>%
+	dplyr::summarise(h_num = sum(fc_phyabuse),
+				t_kids = length(fc_phyabuse)) %>%
+				ungroup())
+
+head(train_imp$imputations[[10]], 100)
 
 summary(test.imp)
 
+plot(validation_imp)
+
 setwd("S:/Data Portal/erik/NYTD_YAR_HOMELESSNESS")
-png(file = "impute_plot.png", width = 480*5, height = 480*5)
+png(file = "impute_plot.png")
 plot(validation_imp)
 dev.off()
 
+head(train)
 
+head(select(train, -st, - stchid, -dob, -sex, -ageadopt, -ctkfamst, -fosfamst))
+
+cor_test <- cor(na.omit(select(train, -st, -recnumbr, - stchid, -dob, -sex, -ageadopt, -ctkfamst, -fosfamst)))
+cor_col <- findCorrelation(cor_test, cutoff = .70)
+
+cor_test
+
+noquote(c(paste0(cor_col, ",")))
+
+head(cor_dat[c(31, 52, 63, 5)])
+
+table(cor_dat[[1]], cor_dat[[5]])
+
+setwd("S:/Data Portal/erik/NYTD_YAR_HOMELESSNESS")
+png(file = "correlation_plot_train.png", width = 480*5, height = 480*5)
+corrplot(cor_test, order = "hclust")
+dev.off()
 
 
 
@@ -504,139 +533,6 @@ table(a.test$s_delinqntsv)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-lapply(test.am$imputations[[i]], glm(nytd2_homeless ~ nytd2_children + nytd2_pubhousas + blkafram + s_delinqntsv + fc_everadpt + fc_chbehprb, data = test.am$imputations[[i]], family = binomial, weights = weight))
-
-?list
-
-summary(yar_mod_imp5)
-
-coef(yar_mod_imp)
-coef(yar_mod)
-coef(yar_mod) - coef(yar_mod_imp)
-(coef(yar_mod) - coef(yar_mod_imp)) / coef(yar_mod)
-(coef(yar_mod) - coef(yar_mod_imp)) / coef(yar_mod) * 100
-
-
-
-
-
-
-
-
-
-
-
-
-
-test.am$imputations[[1]][is.na(test.am$imputations[[1]]weight)]
-
-filter(test.am$imputations[[1]], is.na(weight))
-
-?is.na
-
-length(na.omit(test.am$imputations[[1]]$fosfamst))
-
-
-names(a.test)
-summary(lm(a.test$blkafram ~ a.test$fc_neglect))
-
-sapply(1:ncol(a.test), function(i) all(a.test$amiakn ==a.test[,i]))
-
-# ('s1_edlevlsv', 'ageadopt', 'manrem', 'placeout', 'ctkfamst', 'fosfamst')
-
-b.test <- sqlQuery(con, "SELECT
-	npd.*
-	,s1.[lclfipssv] AS s1_lclfipssv	-- probably don't need this
-	,fc.[ageadopt]
-    ,fc.[totalrem]
-    ,fc.[numplep]
-    ,fc.[manrem]
-	,IIF(fc.[inatstart] = 'Yes', 1, IIF(fc.[inatstart] = 'No', 0, NULL)) AS fc_inatstart
-	,IIF(fc.[exited] = 'Yes', 1, IIF(fc.[exited] = 'No', 0, NULL)) AS fc_exited
-FROM [dbCoreAdministrativeTables].[public_data].[NYTD_Outcomes_people_dim] AS npd
-JOIN [public_data].[NYTD_Outcomes_Waves_1_2] AS nytd1
-	ON npd.stchid = nytd1.stchid
-	AND nytd1.cd_wave = 1
-JOIN [public_data].[NYTD_Outcomes_Waves_1_2] AS nytd2
-	ON npd.stchid = nytd2.stchid
-	AND nytd2.cd_wave = 2
-LEFT JOIN [public_data].[NYTD_Services_2011_2012_2013_truncated] AS s1 
-	ON npd.stchid = s1.stchid
-	AND npd.sex = s1.sex
-	AND npd.dobyr = YEAR(CONVERT(date, s1.dob))
-	AND npd.dobmon = MONTH(CONVERT(date, s1.dob))
-	AND s1.datayear = 2011
-LEFT JOIN [public_data].[NYTD_Services_2011_2012_2013_truncated] AS s2 
-	ON npd.stchid = s2.stchid
-	AND npd.sex = s2.sex
-	AND npd.dobyr = YEAR(CONVERT(date, s2.dob))
-	AND npd.dobmon = MONTH(CONVERT(date, s2.dob))
-	AND s2.datayear = 2012
-LEFT JOIN [public_data].[NYTD_Services_2011_2012_2013_truncated] AS s3 
-	ON npd.stchid = s3.stchid
-	AND npd.sex = s3.sex
-	AND npd.dobyr = YEAR(CONVERT(date, s3.dob))
-	AND npd.dobmon = MONTH(CONVERT(date, s3.dob))
-	AND s3.datayear = 2013
-LEFT JOIN 
-	(SELECT 
-		RANK() OVER(PARTITION BY fc.recnumbr, fc.st, npd.stchid ORDER BY fc.datayear DESC) AS r_order
-		,fc.recnumbr AS recnumbr_fc
-		,fc.st
-		,npd.stchid
-		,fc.datayear
-	FROM [dbCoreAdministrativeTables].[public_data].[NYTD_Outcomes_people_dim] AS npd
-		INNER JOIN [public_data].[afcars_foster_care_00_13] AS fc
-			ON npd.recnumbr = fc.RecNumbr
-			AND npd.st = fc.St) AS fcid
-	ON npd.stchid = fcid.stchid
-	AND r_order = 1
-LEFT JOIN [public_data].[afcars_foster_care_00_13] AS fc
-	ON npd.recnumbr = fc.recnumbr
-	AND npd.st = fc.st
-	AND fcid.datayear = fc.datayear
-ORDER BY 
-	npd.stchid")
-
-test.am <- amelia(b.test, idvars = c('stchid', 'recnumbr', 'dob', 'dobyr', 'dobmon', 'st'), m = 1, noms = c('sex', 'manrem'), ord = 'ageadopt')	
-
-head(b.test)	
-	
-missmap(a.test)
-
-dim(a.test)[[1]]/2
-
-a.test$s1_lclfipssv
-
-head(test.am$imputations[[1]], 50)
-
-head(as.Date(a.test$dob))
-
-hist(as.Date(a.test$dob), breaks = 365)
-
-tail(arrange(a.test, dob), 100)
-
-library(dplyr)
-
-a.test %>% select(dob, s1_fcstatsv, s1_tribesv, s1_delinqntsv) %>% filter(is.na(s1_fcstatsv), is.na(s1_tribesv), is.na(s1_delinqntsv)) %>% arrange(dob)
-
-						IIF(amiakn = 1 OR (asian = 1 OR blkafram = 1 OR hawaiipi = 1 OR white = 1), 6, 
-							IIF(asian = 1 OR (amiakn = 1 OR blkafram = 1 OR hawaiipi = 1 OR white = 1), 6,
-								IIF(blkafram = 1 OR (amiakn = 1 OR asian = 1 OR hawaiipi = 1 OR white = 1), 6,
-									IIF(hawaiipi = 1 OR (amiakn = 1 OR asian = 1 OR blkafram = 1 OR white = 1), 6, 
-										IIF(white = 1 OR (amiakn = 1 OR asian = 1 OR blkafram = 1 OR hawaiipi = 1), 6
 
 
 
